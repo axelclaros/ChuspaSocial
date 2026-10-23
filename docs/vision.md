@@ -24,3 +24,15 @@ Esta limitación genera las siguientes consecuencias en la comunidad educativa:
 ## Fuera de alcance
 
 ## Métricas de éxito
+
+Para saber si ChuspaSocial cumple su objetivo, se medirán los siguientes indicadores con datos que ya registran Moodle y las tablas del plugin (`local_chuspasocial_*`):
+
+| Métrica | Cómo se mide | Meta inicial |
+| --- | --- | --- |
+| Publicaciones respondidas | % de publicaciones de tipo `post` que reciben al menos un comentario dentro de las 24 horas siguientes (tablas `post` y `comment`) | ≥ 50 % |
+| Participación docente | % de cursos cuyo docente publica al menos un anuncio (`announcement`) al mes (tabla `post`) | ≥ 50 % |
+| Retención de estudiantes | % de estudiantes que publican o comentan en una semana y vuelven a participar en alguna de las 3 semanas siguientes (tablas `post` y `comment`) | ≥ 50 % |
+| Oferta de libros | N.º de anuncios nuevos en el marketplace por mes (tabla `listing`) | ≥ 20 por mes |
+| Atención de reportes | % de reportes resueltos o descartados dentro de las 48 horas posteriores a su creación (tabla `report`, campos `timecreated` y `timeresolved`) | ≥ 90 % |
+
+Las metas son valores iniciales de referencia. Se revisarán y ajustarán después del primer mes de uso real en Moodle.
