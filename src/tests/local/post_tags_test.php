@@ -19,6 +19,7 @@ namespace local_chuspasocial\local;
 defined('MOODLE_INTERNAL') || die();
 
 use advanced_testcase;
+use local_chuspasocial\local\persistent\post;
 
 /**
  * Pruebas unitarias del guardado de etiquetas (tags) de las publicaciones.
@@ -37,6 +38,9 @@ final class post_tags_test extends advanced_testcase {
     /** @var string Tipo de item de las etiquetas (ver db/tag.php). */
     private const ITEMTYPE = 'local_chuspasocial_post';
 
+    /** @var string Contenido de las publicaciones de prueba. */
+    private const CONTENT = 'Vendo mi libro de Calculo I.';
+
     /**
      * Configuracion previa a cada test.
      */
@@ -46,48 +50,71 @@ final class post_tags_test extends advanced_testcase {
     }
 
     /**
-     * Inicia sesion con un usuario autor y crea una publicacion con las etiquetas indicadas.
+     * Crea un curso, inscribe a un estudiante, inicia sesion con el y crea una publicacion sin tags.
      *
-     * @param string[] $tags Nombres de las etiquetas.
-     * @return int Id de la publicacion creada.
+     * @return post Publicacion creada con post_service::create_post().
      */
-    private function create_post_with_tags(array $tags): int {
-        $author = $this->getDataGenerator()->create_user();
+    private function create_post_as_author(): post {
+        $generator = $this->getDataGenerator();
+
+        $course = $generator->create_course();
+        $author = $generator->create_user();
+        $generator->enrol_user($author->id, $course->id, 'student');
         $this->setUser($author);
 
-        return post_service::create_post('Vendo mi libro de Calculo I.', FORMAT_HTML, 'post', $tags);
+        return post_service::create_post((int) $course->id, self::CONTENT, FORMAT_HTML);
+    }
+
+    /**
+     * Guarda las etiquetas de una publicacion con post_service::update_post().
+     *
+     * @param post $post Publicacion.
+     * @param string[] $tags Nombres de las etiquetas.
+     */
+    private function save_tags(post $post, array $tags): void {
+        post_service::update_post((int) $post->get('id'), self::CONTENT, FORMAT_HTML, $tags);
     }
 
     /**
      * Devuelve los nombres de las etiquetas de una publicacion, ordenados.
      *
-     * @param int $postid Id de la publicacion.
+     * @param post $post Publicacion.
      * @return string[] Nombres de las etiquetas.
      */
-    private function get_tags(int $postid): array {
-        $tags = array_values(\core_tag_tag::get_item_tags_array(self::COMPONENT, self::ITEMTYPE, $postid));
+    private function get_tags(post $post): array {
+        $tags = array_values(\core_tag_tag::get_item_tags_array(
+            self::COMPONENT,
+            self::ITEMTYPE,
+            (int) $post->get('id')
+        ));
         sort($tags);
         return $tags;
     }
 
     /**
-     * Test: al crear una publicacion con etiquetas, estas quedan guardadas.
+     * Test: una publicacion recien creada no tiene etiquetas y al guardarlas quedan asociadas.
+     *
+     * create_post() ya no recibe tags: las etiquetas se asignan con update_post().
      */
     public function test_create_post_with_tags(): void {
-        $postid = $this->create_post_with_tags(['calculo', 'venta']);
+        $post = $this->create_post_as_author();
+        $this->assertSame([], $this->get_tags($post));
 
-        $this->assertSame(['calculo', 'venta'], $this->get_tags($postid));
+        $this->save_tags($post, ['calculo', 'venta']);
+
+        $this->assertSame(['calculo', 'venta'], $this->get_tags($post));
     }
 
     /**
      * Test: al editar las etiquetas, se reemplazan las anteriores.
      */
     public function test_edit_post_tags(): void {
-        $postid = $this->create_post_with_tags(['calculo', 'venta']);
+        $post = $this->create_post_as_author();
+        $this->save_tags($post, ['calculo', 'venta']);
 
-        post_service::update_post($postid, 'Vendo mi libro de Calculo I.', FORMAT_HTML, ['venta', 'fisica']);
+        $this->save_tags($post, ['venta', 'fisica']);
 
-        $this->assertSame(['fisica', 'venta'], $this->get_tags($postid));
+        $this->assertSame(['fisica', 'venta'], $this->get_tags($post));
     }
 
     /**
@@ -96,12 +123,14 @@ final class post_tags_test extends advanced_testcase {
     public function test_delete_post_removes_tags(): void {
         global $DB;
 
-        $postid = $this->create_post_with_tags(['calculo', 'venta']);
-        $this->assertCount(2, $this->get_tags($postid));
+        $post = $this->create_post_as_author();
+        $postid = (int) $post->get('id');
+        $this->save_tags($post, ['calculo', 'venta']);
+        $this->assertCount(2, $this->get_tags($post));
 
         post_service::delete_post($postid);
 
-        $this->assertSame([], $this->get_tags($postid));
+        $this->assertSame([], $this->get_tags($post));
         $this->assertSame(0, $DB->count_records('tag_instance', [
             'component' => self::COMPONENT,
             'itemtype' => self::ITEMTYPE,
