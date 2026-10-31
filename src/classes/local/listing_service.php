@@ -275,6 +275,7 @@ class listing_service {
         $listing->set('status', listing::STATUS_SOLD);
         $listing->update();
     }
+
     /**
      * Deletes a listing. Only the author or a moderator can do it.
      *
@@ -301,6 +302,6 @@ class listing_service {
         $transaction->allow_commit();
 
         $fs = get_file_storage();
-        $fs->delete_area_files($context->id, 'local_chuspasocial', 'listingphoto', $listingid);
+        $fs->delete_area_files($context->id, 'local_chuspasocial', 'photos', $listingid);
     }
 }
